@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Audio Synthesizer Pro + FX</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
+
+        :root {
+            --bg-color: #0b0c10;
+            --synth-bg: #1f2833;
+            --panel-bg: #151b22;
+            --accent-glow: #66fcf1;
+            --accent-dark: #45a29e;
+            --record-red: #ff3366;
+            --fx-color: #f6d365;
+            --white-key: linear-gradient(to bottom, #ffffff 0%, #e0e4e8 100%);
+            --white-key-pressed: linear-gradient(to bottom, #e0e4e8 0%, #c4cad0 100%);
+            --black-key: linear-gradient(to bottom, #2b2b2b 0%, #111111 100%);
+            --black-key-pressed: linear-gradient(to bottom, #1a1a1a 0%, #000000 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Rajdhani', sans-serif;
+            color: #c5c6c7;
+            padding: 1rem;
+        }
+
+        /* Synth Container */
+        .synth {
+            background: var(--synth-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 
+                0 20px 50px rgba(0, 0, 0, 0.8),
+                inset 0 2px 2px rgba(255, 255, 255, 0.1),
+                inset 0 -5px 15px rgba(0, 0, 0, 0.5);
+            width: 1050px;
+            max-width: 100%;
+        }
+
+        /* Header & Visualizer Screen */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .brand h1 {
+            font-size: 2.2rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow: 0 0 10px var(--accent-dark);
+        }
+
+        .main-display {
+            background: #000;
+            border: 3px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            box-shadow: inset 0 0 20px rgba(0,0,0,1);
+        }
+
+        canvas#oscilloscope {
+            flex-grow: 1;
+            height: 80px;
+            background: #050505;
+            border-radius: 4px;
+            image-rendering: pixelated;
+        }
+
+        .side-screen {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .led-text {
+            color: var(--accent-glow);
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-shadow: 0 0 8px var(--accent-glow);
+            font-family: monospace;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 4px;
+            padding: 5px;
+        }
+
+        .record-btn {
+            background: #2a3441;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .record-btn:hover { background: #3a4555; }
+
+        .record-btn.recording {
+            background: var(--record-red);
+            border-color: #ff99aa;
+            box-shadow: 0 0 15px rgba(255, 51, 102, 0.6);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        /* Controls Panel */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            background: var(--panel-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.3);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-title {
+            font-size: 1rem;
+            color: var(--accent-dark);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        
+        .control-title.fx {
+            color: var(--fx-color);
+        }
+
+        /* Waveform Toggles */
+        .waveform-toggles {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+
+        .wave-btn {
+            padding: 8px 0;
+            background: #2a3441;
+            border: 1px solid #444;
+            color: #888;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+
+        .wave-btn.active {
+            background: var(--accent-dark);
+            color: #fff;
+            border-color: var(--accent-glow);
+            box-shadow: 0 0 10px rgba(102, 252, 241, 0.4);
+        }
+
+        /* Sliders */
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--accent-glow);
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+        
+        .fx input[type="range"]::-webkit-slider-thumb {
+            background: var(--fx-color);
+            box-shadow: 0 0 10px var(--fx-color);
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #0b0c10;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+
+        /* Keyboard */
+        .keyboard {
+            position: relative;
+            height: 220px;
+            display: flex;
+            background: #000;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.8);
+        }
+
+        .key {
+            position: relative;
+            border-radius: 0 0 6px 6px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 15px;
+            font-weight: 700;
+            color: #999;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .key.white {
+            width: calc(100% / 14);
+            height: 100%;
+            background: var(--white-key);
+            border: 1px solid #ccc;
+            border-top: none;
+            z-index: 1;
+            box-shadow: 0 4px 5px rgba(0,0,0,0.2);
+        }
+
+        .key.white.active {
+            background: var(--white-key-pressed);
+            transform: scaleY(0.98);
+            transform-origin: top;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .key.black {
+            width: calc(100% / 22);
+            height: 60%;
+            background: var(--black-key);
+            margin-left: calc(-100% / 44);
+            margin-right: calc(-100% / 44);
+            z-index: 2;
+            border: 1px solid #000;
+            border-top: none;
+            box-shadow: 2px 4px 5px rgba(0,0,0,0.5);
+            color: #555;
+        }
+
+        .key.black.active {
+            background: var(--black-key-pressed);
+            transform: scaleY(0.96);
+            transform-origin: top;
+            box-shadow: 1px 2px 3px rgba(0,0,0,0.5);
+        }
+
+        .key-label {
+            font-size: 0.8rem;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="synth">
+    <!-- Header -->
+    <div class="header">
+        <div class="brand">
+            <h1>WebSynth Pro <span style="color:var(--fx-color)">+ FX</span></h1>
+        </div>
+    </div>
+
+    <!-- Main Visualizer Display -->
+    <div class="main-display">
+        <canvas id="oscilloscope" width="700" height="80"></canvas>
+        <div class="side-screen">
+            <span class="led-text" id="display">---</span>
+            <button class="record-btn" id="record-btn">⚫ Record</button>
+        </div>
+    </div>
+
+    <!-- Synth Controls -->
+    <div class="controls">
+        <!-- Oscillator -->
+        <div class="control-group">
+            <div class="control-title">Oscillator</div>
+            <div class="waveform-toggles">
+                <button class="wave-btn active" data-wave="sine">SINE</button>
+                <button class="wave-btn" data-wave="square">SQUR</button>
+                <button class="wave-btn" data-wave="sawtooth">SAW</button>
+                <button class="wave-btn" data-wave="triangle">TRI</button>
+            </div>
+            <div class="slider-container" style="margin-top: 5px;">
+                <div class="slider-label"><span>Pitch Shift</span><span id="pitch-val">0</span></div>
+                <input type="range" id="pitch" min="-12" max="12" step="1" value="0">
+            </div>
+        </div>
+
+        <!-- Envelope -->
+        <div class="control-group">
+            <div class="control-title">Envelope</div>
+            <div class="slider-container">
+                <div class="slider-label"><span>Attack</span><span id="atk-val">0.1s</span></div>
+                <input type="range" id="attack" min="0" max="2" step="0.01" value="0.1">
+            </div>
+            <div class="slider-container">
+                <div class="slider-label"><span>Decay/Release</span><span id="dec-val">0.3s</span></div>
+                <input type="range" id="decay" min="0" max="3" step="0.01" value="0.3">
+            </div>
+        </div>
+
+        <!-- Delay / Echo FX -->
+        <div class="control-group fx">
+            <div class="control-title fx">Delay / Echo</div>
+            <div class="slider-container">
+                <div class="slider-label"><span>Time</span><span id="delay-time-val">0.3s</span></div>
+                <input type="range" id="delay-time" min="0.05" max="1.5" step="0.01" value="0.3">
+            </div>
+            <div class="slider-container">
+                <div class="slider-label"><span>Feedback</span><span id="delay-fb-val">40%</span></div>
+                <input type="range" id="delay-feedback" min="0" max="0.9" step="0.01" value="0.4">
+            </div>
+            <div class="slider-container">
+                <div class="slider-label"><span>Mix (Wet)</span><span id="delay-mix-val">30%</span></div>
+                <input type="range" id="delay-mix" min="0" max="1" step="0.01" value="0.3">
+            </div>
+        </div>
+
+        <!-- Master -->
+        <div class="control-group">
+            <div class="control-title">Master</div>
+            <div class="slider-container" style="margin-top: auto; margin-bottom: auto;">
+                <div class="slider-label"><span>Volume</span><span id="vol-val">80%</span></div>
+                <input type="range" id="volume" min="0" max="1" step="0.01" value="0.8">
+            </div>
+        </div>
+    </div>
+
+    <!-- Piano Keyboard layout -->
+    <div class="keyboard" id="keyboard">
+        <!-- Octave 4 -->
+        <div class="key white" data-note="C4" data-freq="261.63"><span class="key-label">A</span></div>
+        <div class="key black" data-note="C#4" data-freq="277.18"><span class="key-label">W</span></div>
+        <div class="key white" data-note="D4" data-freq="293.66"><span class="key-label">S</span></div>
+        <div class="key black" data-note="D#4" data-freq="311.13"><span class="key-label">E</span></div>
+        <div class="key white" data-note="E4" data-freq="329.63"><span class="key-label">D</span></div>
+        <div class="key white" data-note="F4" data-freq="349.23"><span class="key-label">F</span></div>
+        <div class="key black" data-note="F#4" data-freq="369.99"><span class="key-label">T</span></div>
+        <div class="key white" data-note="G4" data-freq="392.00"><span class="key-label">G</span></div>
+        <div class="key black" data-note="G#4" data-freq="415.30"><span class="key-label">Y</span></div>
+        <div class="key white" data-note="A4" data-freq="440.00"><span class="key-label">H</span></div>
+        <div class="key black" data-note="A#4" data-freq="466.16"><span class="key-label">U</span></div>
+        <div class="key white" data-note="B4" data-freq="493.88"><span class="key-label">J</span></div>
+        <!-- Octave 5 -->
+        <div class="key white" data-note="C5" data-freq="523.25"><span class="key-label">K</span></div>
+        <div class="key black" data-note="C#5" data-freq="554.37"><span class="key-label">O</span></div>
+        <div class="key white" data-note="D5" data-freq="587.33"><span class="key-label">L</span></div>
+        <div class="key black" data-note="D#5" data-freq="622.25"><span class="key-label">P</span></div>
+        <div class="key white" data-note="E5" data-freq="659.25"><span class="key-label">;</span></div>
+    </div>
+</div>
+
+<script>
+    // --- Audio System & Global State ---
+    let audioCtx;
+    
+    // Routing Nodes
+    let preMasterBus;
+    let masterGain;
+    let compressor;
+    let analyser;
+    
+    // FX Nodes
+    let delayNode;
+    let feedbackGain;
+    let delayMixGain;
+
+    // Recording Setup
+    let mediaStreamDestination;
+    let mediaRecorder;
+    let recordedChunks = [];
+    let isRecording = false;
+
+    const activeOscillators = {}; 
+    let currentWaveform = 'sine';
+
+    // UI Elements
+    const display = document.getElementById('display');
+    const waveBtns = document.querySelectorAll('.wave-btn');
+    const attackSlider = document.getElementById('attack');
+    const decaySlider = document.getElementById('decay');
+    const pitchSlider = document.getElementById('pitch');
+    const volSlider = document.getElementById('volume');
+    const recordBtn = document.getElementById('record-btn');
+    
+    // Delay UI Elements
+    const delayTimeSlider = document.getElementById('delay-time');
+    const delayFbSlider = document.getElementById('delay-feedback');
+    const delayMixSlider = document.getElementById('delay-mix');
+    
+    // Canvas Elements
+    const canvas = document.getElementById('oscilloscope');
+    const canvasCtx = canvas.getContext('2d');
+
+    // UI Labels
+    const atkVal = document.getElementById('atk-val');
+    const decVal = document.getElementById('dec-val');
+    const pitchVal = document.getElementById('pitch-val');
+    const volVal = document.getElementById('vol-val');
+    const delayTimeVal = document.getElementById('delay-time-val');
+    const delayFbVal = document.getElementById('delay-fb-val');
+    const delayMixVal = document.getElementById('delay-mix-val');
+
+    // Key Mapping (Computer Keyboard -> Piano Note)
+    const keyMap = {
+        'a': 'C4', 'w': 'C#4', 's': 'D4', 'e': 'D#4', 'd': 'E4',
+        'f': 'F4', 't': 'F#4', 'g': 'G4', 'y': 'G#4', 'h': 'A4',
+        'u': 'A#4', 'j': 'B4', 'k': 'C5', 'o': 'C#5', 'l': 'D5',
+        'p': 'D#5', ';': 'E5'
+    };
+
+    // Initialize Audio Context and Node Graph on first interaction
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Core Buses
+            preMasterBus = audioCtx.createGain();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = volSlider.value;
+            
+            // Compressor to prevent loud clipping from heavy delays
+            compressor = audioCtx.createDynamicsCompressor();
+            compressor.threshold.value = -10;
+            compressor.knee.value = 40;
+            compressor.ratio.value = 12;
+            compressor.attack.value = 0;
+            compressor.release.value = 0.25;
+
+            // Delay FX Nodes
+            delayNode = audioCtx.createDelay(3.0); // max 3 seconds
+            delayNode.delayTime.value = parseFloat(delayTimeSlider.value);
+            
+            feedbackGain = audioCtx.createGain();
+            feedbackGain.gain.value = parseFloat(delayFbSlider.value);
+            
+            delayMixGain = audioCtx.createGain();
+            delayMixGain.gain.value = parseFloat(delayMixSlider.value);
+
+            // Audio Routing: Dry Path
+            preMasterBus.connect(masterGain);
+            
+            // Audio Routing: Delay Wet Path & Feedback Loop
+            preMasterBus.connect(delayNode);
+            delayNode.connect(feedbackGain);
+            feedbackGain.connect(delayNode);       // Loop back on itself
+            delayNode.connect(delayMixGain);       // Output wet signal
+            delayMixGain.connect(masterGain);      // Mix back to master
+
+            // Master -> Compressor
+            masterGain.connect(compressor);
+
+            // Analyser for Visualizer
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 2048;
+            compressor.connect(analyser);
+            
+            // Final Outputs
+            mediaStreamDestination = audioCtx.createMediaStreamDestination();
+            analyser.connect(audioCtx.destination);          // To speakers
+            analyser.connect(mediaStreamDestination);        // To recorder
+            
+            drawVisualizer();
+        }
+    }
+
+    // --- Visualizer Logic ---
+    function drawVisualizer() {
+        requestAnimationFrame(drawVisualizer);
+        
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteTimeDomainData(dataArray);
+        
+        canvasCtx.fillStyle = '#050505';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        canvasCtx.lineWidth = 2;
+        canvasCtx.strokeStyle = '#66fcf1'; // Neon cyan
+        canvasCtx.beginPath();
+        
+        const sliceWidth = canvas.width * 1.0 / bufferLength;
+        let x = 0;
+        
+        for(let i = 0; i < bufferLength; i++) {
+            const v = dataArray[i] / 128.0;
+            const y = v * canvas.height / 2;
+            
+            if(i === 0) { canvasCtx.moveTo(x, y); } 
+            else { canvasCtx.lineTo(x, y); }
+            x += sliceWidth;
+        }
+        
+        canvasCtx.lineTo(canvas.width, canvas.height / 2);
+        canvasCtx.stroke();
+    }
+
+    // --- Recording Logic ---
+    recordBtn.addEventListener('click', () => {
+        initAudio(); 
+        if (!isRecording) startRecording();
+        else stopRecording();
+    });
+
+    function startRecording() {
+        recordedChunks = [];
+        const options = { mimeType: 'audio/webm' };
+        
+        try { mediaRecorder = new MediaRecorder(mediaStreamDestination.stream, options); } 
+        catch (e) { mediaRecorder = new MediaRecorder(mediaStreamDestination.stream); }
+
+        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+        mediaRecorder.onstop = saveRecording;
+        mediaRecorder.start();
+        
+        isRecording = true;
+        recordBtn.innerText = '⏹ Stop Rec';
+        recordBtn.classList.add('recording');
+    }
+
+    function stopRecording() {
+        mediaRecorder.stop();
+        isRecording = false;
+        recordBtn.innerText = '⚫ Record';
+        recordBtn.classList.remove('recording');
+    }
+
+    function saveRecording() {
+        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        document.body.appendChild(a);
+        a.style = 'display: none';
+        a.href = url;
+        a.download = `synth_fx_recording_${new Date().getTime()}.webm`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+
+    // --- Synthesizer Logic ---
+    function playNote(noteName, baseFreq, keyElement) {
+        initAudio();
+        if (activeOscillators[noteName]) return; // Prevent retrigger
+
+        keyElement.classList.add('active');
+        display.innerText = noteName;
+
+        const pitchShift = parseInt(pitchSlider.value);
+        const shiftedFreq = baseFreq * Math.pow(2, pitchShift / 12);
+
+        const osc = audioCtx.createOscillator();
+        const noteGain = audioCtx.createGain();
+
+        osc.type = currentWaveform;
+        osc.frequency.value = shiftedFreq;
+
+        const attackTime = parseFloat(attackSlider.value);
+        noteGain.gain.setValueAtTime(0, audioCtx.currentTime);
+        noteGain.gain.linearRampToValueAtTime(1, audioCtx.currentTime + attackTime);
+
+        // Connect specifically to the pre-master bus (which routes to dry & delay)
+        osc.connect(noteGain);
+        noteGain.connect(preMasterBus);
+        osc.start();
+
+        activeOscillators[noteName] = { osc, noteGain, keyElement };
+    }
+
+    function stopNote(noteName) {
+        if (!activeOscillators[noteName]) return;
+
+        const { osc, noteGain, keyElement } = activeOscillators[noteName];
+        const decayTime = parseFloat(decaySlider.value);
+
+        noteGain.gain.cancelScheduledValues(audioCtx.currentTime);
+        noteGain.gain.setValueAtTime(noteGain.gain.value, audioCtx.currentTime);
+        noteGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + decayTime);
+
+        osc.stop(audioCtx.currentTime + decayTime);
+        
+        keyElement.classList.remove('active');
+        if(display.innerText === noteName) display.innerText = '---';
+
+        delete activeOscillators[noteName];
+    }
+
+    // --- Event Listeners ---
+
+    // 1. Piano Keys
+    const keys = document.querySelectorAll('.key');
+    keys.forEach(key => {
+        const note = key.dataset.note;
+        const freq = parseFloat(key.dataset.freq);
+
+        key.addEventListener('mousedown', () => playNote(note, freq, key));
+        key.addEventListener('mouseup', () => stopNote(note));
+        key.addEventListener('mouseleave', () => stopNote(note));
+        
+        key.addEventListener('touchstart', (e) => { e.preventDefault(); playNote(note, freq, key); });
+        key.addEventListener('touchend', (e) => { e.preventDefault(); stopNote(note); });
+    });
+
+    // 2. Computer Keyboard
+    window.addEventListener('keydown', (e) => {
+        if (e.repeat) return; 
+        const key = e.key.toLowerCase();
+        if (keyMap[key]) {
+            const domKey = document.querySelector(`[data-note="${keyMap[key]}"]`);
+            if (domKey) playNote(keyMap[key], parseFloat(domKey.dataset.freq), domKey);
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        const key = e.key.toLowerCase();
+        if (keyMap[key]) stopNote(keyMap[key]);
+    });
+
+    // 3. UI Controls
+    waveBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            waveBtns.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentWaveform = e.target.dataset.wave;
+            Object.values(activeOscillators).forEach(active => active.osc.type = currentWaveform);
+        });
+    });
+
+    // Synth Parameters
+    attackSlider.addEventListener('input', (e) => atkVal.innerText = `${e.target.value}s`);
+    decaySlider.addEventListener('input', (e) => decVal.innerText = `${e.target.value}s`);
+    pitchSlider.addEventListener('input', (e) => pitchVal.innerText = e.target.value > 0 ? `+${e.target.value}` : e.target.value);
+    
+    // FX Parameters
+    delayTimeSlider.addEventListener('input', (e) => {
+        delayTimeVal.innerText = `${e.target.value}s`;
+        if (delayNode) delayNode.delayTime.value = e.target.value;
+    });
+    
+    delayFbSlider.addEventListener('input', (e) => {
+        delayFbVal.innerText = `${Math.round(e.target.value * 100)}%`;
+        if (feedbackGain) feedbackGain.gain.value = e.target.value;
+    });
+
+    delayMixSlider.addEventListener('input', (e) => {
+        delayMixVal.innerText = `${Math.round(e.target.value * 100)}%`;
+        if (delayMixGain) delayMixGain.gain.value = e.target.value;
+    });
+
+    // Global Volume
+    volSlider.addEventListener('input', (e) => {
+        volVal.innerText = `${Math.round(e.target.value * 100)}%`;
+        if (masterGain) masterGain.gain.value = e.target.value;
+    });
+
+    // Draw empty visualizer line on load
+    canvasCtx.fillStyle = '#050505';
+    canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+    canvasCtx.lineWidth = 2;
+    canvasCtx.strokeStyle = '#66fcf1';
+    canvasCtx.beginPath();
+    canvasCtx.moveTo(0, canvas.height / 2);
+    canvasCtx.lineTo(canvas.width, canvas.height / 2);
+    canvasCtx.stroke();
+
+</script>
+</body>
+</html>
