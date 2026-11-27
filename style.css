@@ -1,0 +1,310 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
+
+:root {
+    --bg-color: #0b0c10;
+    --synth-bg: #1f2833;
+    --panel-bg: #151b22;
+    --accent-glow: #66fcf1;
+    --accent-dark: #45a29e;
+    --record-red: #ff3366;
+    --fx-color: #f6d365;
+    --white-key: linear-gradient(to bottom, #ffffff 0%, #e0e4e8 100%);
+    --white-key-pressed: linear-gradient(to bottom, #e0e4e8 0%, #c4cad0 100%);
+    --black-key: linear-gradient(to bottom, #2b2b2b 0%, #111111 100%);
+    --black-key-pressed: linear-gradient(to bottom, #1a1a1a 0%, #000000 100%);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+body {
+    background-color: var(--bg-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Rajdhani', sans-serif;
+    color: #c5c6c7;
+    padding: 1rem;
+}
+
+/* Synth Container */
+.synth {
+    background: var(--synth-bg);
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.8),
+        inset 0 2px 2px rgba(255, 255, 255, 0.1),
+        inset 0 -5px 15px rgba(0, 0, 0, 0.5);
+    width: 1050px;
+    max-width: 100%;
+}
+
+/* Header & Visualizer Screen */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.brand h1 {
+    font-size: 2.2rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 10px var(--accent-dark);
+}
+
+.main-display {
+    background: #000;
+    border: 3px solid #333;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 1);
+}
+
+canvas#oscilloscope {
+    flex-grow: 1;
+    height: 80px;
+    background: #050505;
+    border-radius: 4px;
+    image-rendering: pixelated;
+}
+
+.side-screen {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 120px;
+    text-align: center;
+}
+
+.led-text {
+    color: var(--accent-glow);
+    font-size: 1.8rem;
+    font-weight: 700;
+    text-shadow: 0 0 8px var(--accent-glow);
+    font-family: monospace;
+    background: #0a0a0a;
+    border: 1px solid #222;
+    border-radius: 4px;
+    padding: 5px;
+}
+
+.record-btn {
+    background: #2a3441;
+    color: #fff;
+    border: 1px solid #444;
+    padding: 8px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.record-btn:hover {
+    background: #3a4555;
+}
+
+.record-btn.recording {
+    background: var(--record-red);
+    border-color: #ff99aa;
+    box-shadow: 0 0 15px rgba(255, 51, 102, 0.6);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Controls Panel */
+.controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    background: var(--panel-bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: inset 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.control-title {
+    font-size: 1rem;
+    color: var(--accent-dark);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+}
+
+.control-title.fx {
+    color: var(--fx-color);
+}
+
+/* Waveform Toggles */
+.waveform-toggles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+}
+
+.wave-btn {
+    padding: 8px 0;
+    background: #2a3441;
+    border: 1px solid #444;
+    color: #888;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.wave-btn.active {
+    background: var(--accent-dark);
+    color: #fff;
+    border-color: var(--accent-glow);
+    box-shadow: 0 0 10px rgba(102, 252, 241, 0.4);
+}
+
+/* Sliders */
+.slider-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.slider-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    background: transparent;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: var(--accent-glow);
+    cursor: pointer;
+    margin-top: -8px;
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.fx input[type="range"]::-webkit-slider-thumb {
+    background: var(--fx-color);
+    box-shadow: 0 0 10px var(--fx-color);
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: #0b0c10;
+    border-radius: 4px;
+    border: 1px solid #333;
+}
+
+/* Keyboard */
+.keyboard {
+    position: relative;
+    height: 220px;
+    display: flex;
+    background: #000;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: inset 0 10px 20px rgba(0, 0, 0, 0.8);
+}
+
+.key {
+    position: relative;
+    border-radius: 0 0 6px 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 15px;
+    font-weight: 700;
+    color: #999;
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.key.white {
+    width: calc(100% / 14);
+    height: 100%;
+    background: var(--white-key);
+    border: 1px solid #ccc;
+    border-top: none;
+    z-index: 1;
+    box-shadow: 0 4px 5px rgba(0, 0, 0, 0.2);
+}
+
+.key.white.active {
+    background: var(--white-key-pressed);
+    transform: scaleY(0.98);
+    transform-origin: top;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.key.black {
+    width: calc(100% / 22);
+    height: 60%;
+    background: var(--black-key);
+    margin-left: calc(-100% / 44);
+    margin-right: calc(-100% / 44);
+    z-index: 2;
+    border: 1px solid #000;
+    border-top: none;
+    box-shadow: 2px 4px 5px rgba(0, 0, 0, 0.5);
+    color: #555;
+}
+
+.key.black.active {
+    background: var(--black-key-pressed);
+    transform: scaleY(0.96);
+    transform-origin: top;
+    box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.5);
+}
+
+.key-label {
+    font-size: 0.8rem;
+    pointer-events: none;
+}
